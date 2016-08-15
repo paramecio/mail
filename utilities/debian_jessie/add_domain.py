@@ -91,7 +91,7 @@ def add_domain():
 
         exit(1)    
     
-    json_return['status']=1
+    json_return['status']=0
     json_return['progress']=75
     json_return['message']='Server updated with new domain sucessfully'
 
