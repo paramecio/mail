@@ -24,7 +24,7 @@ def add_user():
 
     domain_check=re.compile('^(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z0-9][a-zA-Z0-9-_]{1,61}[a-zA-Z0-9]))\.([a-zA-Z]{2,6}|[a-zA-Z0-9-]{2,30}\.[a-zA-Z]{2,3})$')
 
-    user_check=re.compile('^[a-zA-Z0-9-_]+$')
+    user_check=re.compile('^[a-zA-Z0-9-_|\.]+$')
 
     if not domain_check.match(args.domain) or not user_check.match(args.user):
         json_return['error']=1
@@ -153,7 +153,13 @@ def add_user():
             json_return['message']='New mailbox account added sucessfully'
 
             print(json.dumps(json_return))
-            
+    else:
+        json_return['error']=1
+        json_return['status']=1
+        json_return['progress']=100
+        json_return['message']='Error: no exists the domain'
+
+        print(json.dumps(json_return))
 
 if __name__=='__main__':
     add_user()

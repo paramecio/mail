@@ -22,7 +22,7 @@ def add_domain():
 
     domain_check=re.compile('^(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z0-9][a-zA-Z0-9-_]{1,61}[a-zA-Z0-9]))\.([a-zA-Z]{2,6}|[a-zA-Z0-9-]{2,30}\.[a-zA-Z]{2,3})$')
 
-    group_check=re.compile('^[a-zA-Z0-9-_]+$')
+    group_check=re.compile('^[a-zA-Z0-9-_|\.]+$')
 
     if not domain_check.match(args.domain) or not group_check.match(args.group):
         json_return['error']=1

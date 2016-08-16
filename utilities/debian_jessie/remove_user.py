@@ -24,7 +24,7 @@ def remove_user():
 
     domain_check=re.compile('^(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z0-9][a-zA-Z0-9-_]{1,61}[a-zA-Z0-9]))\.([a-zA-Z]{2,6}|[a-zA-Z0-9-]{2,30}\.[a-zA-Z]{2,3})$')
 
-    user_check=re.compile('^[a-zA-Z0-9-_]+$')
+    user_check=re.compile('^[a-zA-Z0-9-_|\.]+$')
 
     if not domain_check.match(domain) or not user_check.match(user):
         json_return['error']=1
