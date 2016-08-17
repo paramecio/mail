@@ -56,6 +56,8 @@ def remove_user():
 
     final_domains=[]
 
+    deleted_user=[]
+
     with open('/etc/postfix/virtual_mailbox') as f:
         for domain in f:
             if domain_search.match(domain):
@@ -77,15 +79,19 @@ def remove_user():
 
                             print(json.dumps(json_return))
                             exit(1)
+                        deleted_user.append(user)
 
                     except KeyError:
-                        json_return['error']=1
-                        json_return['status']=1
-                        json_return['progress']=100
-                        json_return['message']='Error: user no exists'
+                        
+                        if user not in deleted_user:
+                        
+                            json_return['error']=1
+                            json_return['status']=1
+                            json_return['progress']=100
+                            json_return['message']='Error: user no exists'
 
-                        print(json.dumps(json_return))
-                        sys.exit(1)
+                            print(json.dumps(json_return))
+                            sys.exit(1)
 		    
 
 
@@ -95,7 +101,7 @@ def remove_user():
         final_domains_file=""
 
         if len(final_domains)>0:
-            final_domains_file="\n".join(final_domains)
+            final_domains_file="\n".join(final_domains)+"\n"
 
         with open('/etc/postfix/virtual_mailbox', 'w') as f:
             if f.write(final_domains_file) or final_domains_file=="":
@@ -144,7 +150,7 @@ def remove_user():
         final_domains_file=""
 
         if len(final_domains)>0:
-            final_domains_file="\n".join(final_domains) 
+            final_domains_file="\n".join(final_domains)+"\n"
 
         with open('/etc/postfix/virtual_domains', 'w') as f:
             if f.write(final_domains_file) or final_domains_file=="":

@@ -25,6 +25,8 @@ def remove_user():
     domain_check=re.compile('^(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z0-9][a-zA-Z0-9-_]{1,61}[a-zA-Z0-9]))\.([a-zA-Z]{2,6}|[a-zA-Z0-9-]{2,30}\.[a-zA-Z]{2,3})$')
 
     user_check=re.compile('^[a-zA-Z0-9-_|\.]+$')
+    
+    user_mailbox_check=re.compile(r'.* '+mailbox_user.replace('.', '\.')+'$')
 
     if not domain_check.match(domain) or not user_check.match(user):
         json_return['error']=1
@@ -44,6 +46,9 @@ def remove_user():
     try:
         user_pwd=pwd.getpwnam(user+'_'+domain)        
 
+        line_domain=args.mailbox+' '+mailbox_user
+        final_domains=[]
+
         if call("sudo userdel -r %s" % mailbox_user,  shell=True, stdout=DEVNULL, stderr=DEVNULL) > 0:
 
             json_return['error']=1
@@ -54,19 +59,20 @@ def remove_user():
             print(json.dumps(json_return))
             exit(1)
         else:
-            line_domain=args.mailbox+' '+mailbox_user
-            final_domains=[]
+            
             with open('/etc/postfix/virtual_mailbox') as f:
                 for domain in f:
-                    if domain.strip()!=line_domain:
+                    
+                    if domain.strip()!=line_domain and not user_mailbox_check.match(domain):
+                        
                         final_domains.append(domain.strip())        
-
+            
             #final_domains.append("\n")
 
             final_domains_file=""
 
             if len(final_domains)>0:
-                final_domains_file="\n".join(final_domains)
+                final_domains_file="\n".join(final_domains)+"\n"
             
 
             with open('/etc/postfix/virtual_mailbox', 'w') as f:
