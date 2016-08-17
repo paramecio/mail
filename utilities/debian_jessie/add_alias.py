@@ -42,7 +42,9 @@ def add_alias():
     domain_check=re.compile('^(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z0-9][a-zA-Z0-9-_]{1,61}[a-zA-Z0-9]))\.([a-zA-Z]{2,6}|[a-zA-Z0-9-]{2,30}\.[a-zA-Z]{2,3})$')
 
     user_check=re.compile('^[a-zA-Z0-9-_|\.]+$')
-
+    
+    alias_check=re.compile('^'+args.alias+' .*$')
+    
     if not domain_check.match(domain) or not user_check.match(user) or not domain_check.match(domain_alias) or not user_check.match(user_alias) or domain_alias!=domain:
         json_return['error']=1
         json_return['status']=1
@@ -76,6 +78,26 @@ def add_alias():
 
     #mailbox=args.user+'@'+args.domain
     #mailbox_user=args.user+'_'+args.domain
+    
+    # Check that alias doesnt exists
+    
+    with open('/etc/postfix/virtual_mailbox') as f:
+        
+        
+        #print(all_mailboxes)
+        
+        for line in f:
+            if alias_check.match(line):
+                json_return['error']=1
+                json_return['status']=1
+                json_return['progress']=100
+                json_return['message']='Error: alias exists'
+
+                print(json.dumps(json_return))
+
+                sys.exit(1)
+    
+    #Add alias
 
     with open('/etc/postfix/virtual_mailbox', 'a') as f:
         if f.write(args.alias+' '+mailbox_user+"\n"):
