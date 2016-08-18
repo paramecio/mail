@@ -96,7 +96,17 @@ def remove_redirection():
                     yes_mailbox=True
                     ls=l.split(' ')
                     redirections=ls[1].split(',')
-                    redirections.remove(args.redirection)
+                    try:
+                        redirections.remove(args.redirection)
+                    except:
+                        json_return['error']=1
+                        json_return['status']=1
+                        json_return['progress']=100
+                        json_return['message']='Error: no exists redirected mailbox'
+
+                        print(json.dumps(json_return))
+                        exit(1)
+                        
                     if len(redirections)>0:
                         l=ls[0]+' '+','.join(redirections)
                         arr_mailbox.append(l)
