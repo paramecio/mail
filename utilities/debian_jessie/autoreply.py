@@ -188,9 +188,20 @@ args=parser.parse_args()
 
 sendmail=SendMail()
 
-#f=open()
+domain=args.mailbox.split('@')[1]
 
-sendmail.send(args.mailbox, [args.sender], 'vacations', 'im in vacations', content_type='plain', attachments=[])
+#f=open()
+import configparser
+config = configparser.ConfigParser()
+config.read('/home/'+domain+'/'+args.mailbox+'/.vacations')
+
+if len(config.sections())==0:
+    print('Sorry: cannot send the message')
+    exit(0)
+
+#print(config['vacation']['subject'])    
+
+sendmail.send(args.mailbox, [args.sender], config['vacation']['subject'], config['vacation']['message'], content_type='plain', attachments=[])
 
 exit(0)
 
