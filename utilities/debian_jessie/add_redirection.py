@@ -6,6 +6,7 @@ import argparse
 import json
 import pwd
 import sys
+import socket
 from subprocess import call, DEVNULL
 
 def add_redirection():
@@ -25,7 +26,36 @@ def add_redirection():
         user, domain=args.mailbox.split("@")
         
         user_redirection, domain_redirection=args.redirection.split("@")
-        
+    
+    except ValueError:
+        try:
+            
+            user_redirection, domain_redirection, tld=args.redirection.split("@")
+            #Check if domain is the host domain
+            hostname='autoreply.'+socket.getfqdn()
+            
+            if tld!=hostname:
+                json_return['error']=1
+                json_return['status']=1
+                json_return['progress']=100
+                json_return['message']='Error: not valid hostname for the service'
+                
+                print(json.dumps(json_return))
+                
+                exit(1)
+                
+            
+        except ValueError:
+            
+            json_return['error']=1
+            json_return['status']=1
+            json_return['progress']=100
+            json_return['message']='Error: domain or user is not valid'
+            
+            print(json.dumps(json_return))
+
+            exit(1) 
+    
     except:
         json_return['error']=1
         json_return['status']=1
