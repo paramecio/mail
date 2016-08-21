@@ -27,36 +27,6 @@ env=env_theme(__file__)
 
 @route('/'+pastafari_folder+'/mail')
 def frontend():
-
-    """
-    content_index=''
-
-    connection=WebModel.connection()
-    #Fix, make local variable
-    
-    t=PTemplate(env)
-    
-    s=get_session()
-    
-    if check_login():
-                
-        #Load menu
-        
-        menu=get_menu(config_admin.modules_admin)
-    
-        lang_selected=get_language(s)
-        
-        groups_list=SimpleList(MailServerGroup(connection), '', t)
-        
-        groups_list.yes_search=False
-        
-        content_index=t.load_template('mail/admin.phtml', groups_list=groups_list.show())
-
-        return t.load_template('admin/content.html', title='Mail servers', content_index=content_index, menu=menu, lang_selected=lang_selected, arr_i18n=I18n.dict_i18n)
-        
-    else:
-        redirect(make_url(config.admin_folder))
-    """
     
     return base_admin(admin_groups, env, 'Mail servers')
 
