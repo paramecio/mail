@@ -11,8 +11,8 @@ from paramecio.citoplasma.httputils import GetPostFiles
 from paramecio.cromosoma.webmodel import WebModel
 from paramecio.cromosoma import coreforms
 from paramecio.cromosoma.formsutils import show_form
-from modules.pastafari.models.servers import Server, ServerGroup
-from modules.mail.models.mail import MailServer, MailServerGroup
+from modules.pastafari.models.servers import Server, ServerGroup, ServerGroupTask, StatusDisk
+#from modules.mail.models.mail import MailServer, MailServerGroup
 from collections import OrderedDict
 
 
@@ -32,12 +32,24 @@ def frontend():
 
 def admin_groups(connection, t, s):
     
-    groups_list=SimpleList(MailServerGroup(connection), '', t)
-        
+    server=Server(connection)
+    disks_server=StatusDisk(connection)
+    
+    #server.fields['server_date'].label='Status'
+    
+    server.set_conditions('where ip IN (select ip from servergrouptask where name_task="standalone_postfix")', [])
+    
+    groups_list=SimpleList(disks_server, '', t)
+    
+    groups_list.raw_query=False
+    
+    #groups_list.fields_showed=['hostname', 'ip', 'actual_idle', 'date']
+    
     groups_list.yes_search=False
     
     return t.load_template('mail/admin.phtml', groups_list=groups_list.show())
-
+    
+"""
 @route('/'+pastafari_folder+'/mail/addgroup')
 def viewform():
     
@@ -65,3 +77,4 @@ def group_form(t, connection, yes_error=False, pass_values=False, **args):
 def addservers():
     return ""
     
+"""
