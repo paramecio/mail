@@ -1,2 +1,24 @@
-<br />
-${groups_list|n}
+<h2>Healthy of mail servers</h2>
+% for server in servers:
+<h3>${server['server_id']}</h3>
+<table class="table_list">
+    <tr class="title_list">
+        <td>Disk</td>
+        <td>Free</td>
+    </tr>
+    % for x in range(0, num_disks):
+    <tr class="row_list">
+        <td>${server['disk'+str(x)+'_id']}</td>
+        <td>${server['disk'+str(x)+'_id_free']}</td>
+    </tr>
+    % endfor
+    <tr class="title_list">
+        <td>CPU number</td>
+        <td>Total cpu idle</td>
+    </tr>
+    <tr class="row_list">
+        <td>${server['cpu_id_num_cpu']}</td>
+        <td>${server['cpu_id']}</td>
+    </tr>
+</table>
+% endfor

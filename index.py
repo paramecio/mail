@@ -11,7 +11,8 @@ from paramecio.citoplasma.httputils import GetPostFiles
 from paramecio.cromosoma.webmodel import WebModel
 from paramecio.cromosoma import coreforms
 from paramecio.cromosoma.formsutils import show_form
-from modules.pastafari.models.servers import Server, ServerGroup, ServerGroupTask, StatusDisk
+from modules.pastafari.models.servers import Server, ServerGroup, ServerGroupTask, StatusDisk, DataServer
+from paramecio.citoplasma.filesize import filesize
 #from modules.mail.models.mail import MailServer, MailServerGroup
 from collections import OrderedDict
 
@@ -33,8 +34,57 @@ def frontend():
 def admin_groups(connection, t, s):
     
     server=Server(connection)
-    disks_server=StatusDisk(connection)
+    data_server=DataServer(connection)
     
+    data_server.set_conditions('where dataserver.ip IN (select ip from servergrouptask where name_task="standalone_postfix")', [])
+    
+    data_server.set_order(['id'], [1])
+    
+    data_server.set_limit([1])
+    
+    arr_servers=data_server.select_to_array()
+    
+    # Horrible hack, need fix to most elegant method for get the query for disk
+    
+    z=0
+    check_disk=[]
+    num_disks=0
+    for k,v in enumerate(arr_servers):
+        for z in range(0, 6):
+            if not arr_servers[k]['disk'+str(z)+'_id'] in check_disk:
+                check_disk.append(arr_servers[k]['disk'+str(z)+'_id'])
+                arr_servers[k]['disk'+str(z)+'_id_free']=str(filesize(arr_servers[k]['disk'+str(z)+'_id_free']))+' free'
+                num_disks+=1
+            else:
+                
+                del arr_servers[k]['disk'+str(z)+'_id']
+                del arr_servers[k]['disk'+str(z)+'_id_free']
+                del arr_servers[k]['disk'+str(z)+'_id_used']
+                del arr_servers[k]['disk'+str(z)+'_id_size']
+                del arr_servers[k]['disk'+str(z)+'_id_percent']
+    
+    return t.load_template('mail/admin.phtml', servers=arr_servers, num_disks=num_disks)
+    
+    """
+    data_server.set_order(['free'], [1])
+    
+    arr_disk=disk_server.select_to_array()
+    
+    arr_servers=OrderedDict()
+    
+    for disk in arr_disk:
+        
+        if disk['server_id'] in arr_servers:
+            
+            arr_servers[disk['server_id']].append(disk)
+        
+        else:
+            arr_servers[disk['server_id']]=[disk]
+    
+    return t.load_template('mail/admin.phtml', servers=arr_servers)
+    """
+    
+    """
     #server.fields['server_date'].label='Status'
     
     server.set_conditions('where ip IN (select ip from servergrouptask where name_task="standalone_postfix")', [])
@@ -48,7 +98,7 @@ def admin_groups(connection, t, s):
     groups_list.yes_search=False
     
     return t.load_template('mail/admin.phtml', groups_list=groups_list.show())
-    
+    """
 """
 @route('/'+pastafari_folder+'/mail/addgroup')
 def viewform():
