@@ -20,5 +20,17 @@
         <td>${server['cpu_id_num_cpu']}</td>
         <td>${server['cpu_id']}</td>
     </tr>
+    <tr class="title_list">
+        <td>Memory free</td>
+        <td>Options</td>
+    </tr>
+    <tr class="row_list">
+        <td>
+            <strong>${server['memory_id_free']}</strong> | ${server['memory_id_used']} | ${server['memory_id_cached']}
+        </td>
+        <td>
+            <a href="${make_url('pastafari/mail/domains/'+str(server['server_id_id']))}">Domains</a>
+        </td>
+    </tr>
 </table>
 % endfor
