@@ -6,19 +6,26 @@ from paramecio.citoplasma.mtemplates import env_theme, PTemplate
 from paramecio.citoplasma.i18n import load_lang, I18n
 from paramecio.citoplasma.urls import redirect, make_url
 from paramecio.citoplasma.sessions import get_session
-from paramecio.citoplasma.adminutils import check_login, get_menu, get_language, base_admin
+from paramecio.citoplasma.adminutils import check_login, get_menu, get_language
+from paramecio.citoplasma.base_admin import base_admin
 from paramecio.citoplasma.lists import SimpleList
 from paramecio.citoplasma.httputils import GetPostFiles
 from paramecio.cromosoma.webmodel import WebModel
 from paramecio.cromosoma import coreforms
 from paramecio.cromosoma.formsutils import show_form, CheckForm
 from modules.pastafari.models.servers import Server, ServerGroup, ServerGroupTask, StatusDisk, DataServer
+from modules.pastafari.models.tasks import Task, LogTask
 from modules.mail.models.mail import DomainMail
 from paramecio.citoplasma.filesize import filesize
+from modules.pastafari.libraries.configclass import config_task
 #from modules.mail.models.mail import MailServer, MailServerGroup
 from collections import OrderedDict
 import copy
+import requests
 
+server_task=config_task.server_task
+
+server_task=server_task+'/exec/'+config_task.api_key+'/'
 
 pastafari_folder='pastafari'
 
@@ -107,9 +114,13 @@ def form_add_domain(connection, t, s, **args):
     
     domains=DomainMail(connection)
     
-    domains.create_forms(['domain'])
+    domains.create_forms(['domain', 'group', 'quota'])
     
-    arr_server=server.select_a_row(args['server_id'], ['id', 'hostname', 'ip'])
+    domains.valid_fields.append('ip')
+    
+    domains.valid_fields.append('server')
+    
+    arr_server=server.select_a_row(args['server_id'], ['id', 'hostname', 'ip', 'os_codename'])
     
     if args['request']=='GET':
         
@@ -118,6 +129,9 @@ def form_add_domain(connection, t, s, **args):
         return t.load_template('mail/add_domain.phtml', hostname=arr_server['hostname'], server_id=arr_server['id'], forms=forms)
     
     else:
+        
+        task=Task(connection)
+        logtask=LogTask(connection)
         
         getpost=GetPostFiles()
     
@@ -138,7 +152,68 @@ def form_add_domain(connection, t, s, **args):
             return t.load_template('mail/add_domain.phtml', hostname=arr_server['hostname'], server_id=arr_server['id'], forms=forms)
             
         else:
-            return "Vamos palla"
+            
+            url=make_url('pastafari/mail/domains/'+str(arr_server['id']))
+            
+            if domains.insert({'domain': post['domain'], 'group': post['group'], 'quota': post['quota'], 'server': arr_server['id'], 'ip': arr_server['ip']}):
+                
+                domain_id=domains.insert_id()
+                
+                # Insert task
+                
+                commands_to_execute=[]
+                                
+                commands_to_execute.append(['modules/mail/utilities/'+arr_server['os_codename']+'/add_domain.py', '--domain '+post['domain']+' --group '+post['group']+' --quota '+str(post['quota']), ''])
+                
+                task.create_forms()
+                logtask.create_forms()
+                
+                if task.insert({'name_task': 'add_domain','description_task': I18n.lang('mail', 'add_domain', 'Adding domain to the server...'), 'url_return': url, 'files':  [], 'commands_to_execute': commands_to_execute, 'delete_files': [], 'delete_directories': [], 'server': arr_server['ip']}):
+                    
+                    task_id=task.insert_id()
+                                                    
+                    #try:
+                    
+                    r=requests.get(server_task+str(task_id))
+                    
+                    arr_data=r.json()
+                    
+                    arr_data['task_id']=task_id
+                    
+                    if not logtask.insert(arr_data):
+                        
+                        return "Error:Wrong format of json data..."
+                    else:
+                        
+                        redirect(make_url(pastafari_folder+'/showprogress/'+str(task_id)+'/'+arr_server['ip']))
+                        
+                        #return t_admin.load_template('pastafari/ajax_progress.phtml', title='Adding monitoritation to the server...') #"Load template with ajax..."
+                    """
+                    except:
+                        
+                        logtask.conditions=['WHERE id=%s', [task_id]]
+                        
+                        task.reset_require()
+                        
+                        task.set_conditions('where id=%s', [task_id])
+                        
+                        task.update({'status': 1, 'error': 1})
+                        
+                        # Delete domain
+                        
+                        domains.set_conditions('where id=%s', [domain_id])
+                        
+                        domains.delete()
+                        
+                        return "Error:cannot connect to task server, check the url for it..."
+                    """
+                else:
+                    
+                    return "Cannot insert the new domain"
+            else:
+                 
+                 return domains.show_errors()
+                  
             
             #redirect(make_url(pastafari_folder+'/mail/add_domain/'+str(arr_server['id'])))
         

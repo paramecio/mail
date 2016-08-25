@@ -31,3 +31,5 @@ class DomainMail(WebModel):
         self.register(DomainField('domain'), True)
         self.register(IpField('ip'), True)
         self.register(corefields.ForeignKeyField('server', Server(connection), size=11, required=True, identifier_field='id', named_field="hostname", select_fields=['ip']))
+        self.register(corefields.CharField('group'), True)
+        self.register(corefields.IntegerField('quota'))
