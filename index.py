@@ -50,16 +50,16 @@ def admin_groups(connection, t, s):
     
     data_server.set_order(['id'], [1])
     
-    data_server.set_limit([1])
+    #data_server.set_limit([1])
     
     arr_servers=data_server.select_to_array()
-    
+    #print(data_server.last_query)
     # Horrible hack, need fix to most elegant method for get the query for disk
     
-    z=0
-    check_disk=[]
-    num_disks=0
     for k,v in enumerate(arr_servers):
+        z=0
+        check_disk=[]
+        num_disks=0
         arr_servers[k]['memory_id_free']=filesize(arr_servers[k]['memory_id_free'])+' free'
         arr_servers[k]['memory_id_cached']=filesize(arr_servers[k]['memory_id_cached'])+' cached'
         arr_servers[k]['memory_id_used']=filesize(arr_servers[k]['memory_id_used'])+' used'
