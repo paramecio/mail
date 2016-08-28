@@ -1,5 +1,6 @@
 #!/usr/bin/python3 -u
 
+import time
 import os
 import re
 import argparse
@@ -7,6 +8,22 @@ import json
 import pwd
 import sys
 from subprocess import call, DEVNULL
+
+def lock_file(file_lock):
+    with open('/tmp/lock_'+file_lock, 'w') as f:
+        f.write('lock')
+    return True
+        
+def unlock_file(file_lock):
+    os.remove('/tmp/lock_'+file_lock)
+    
+def check_lock(file_lock):
+    while os.path.isfile('/tmp/lock_'+file_lock)==True:
+        time.sleep(1)
+    
+    lock_file(file_lock)
+    
+    return True
 
 def remove_user():
 
@@ -18,6 +35,8 @@ def remove_user():
 
     json_return={'error':0, 'status': 0, 'progress': 0, 'no_progress':0, 'message': ''}
 
+    check_lock('virtual_domains')
+
     user, domain=args.mailbox.split("@")
 
     mailbox_user=args.mailbox.replace("@", "_")
@@ -26,7 +45,7 @@ def remove_user():
 
     user_check=re.compile('^[a-zA-Z0-9-_|\.]+$')
     
-    user_mailbox_check=re.compile(r'.* '+mailbox_user.replace('.', '\.')+'$')
+    user_mailbox_check=re.compile(r'.* '+mailbox_user.replace('.', '\.')+'.*$')
 
     if not domain_check.match(domain) or not user_check.match(user):
         json_return['error']=1
@@ -35,13 +54,15 @@ def remove_user():
         json_return['message']='Error: domain or user is not valid'
         
         print(json.dumps(json_return))
-
+        unlock_file('virtual_domains')
         exit(1)
 
     json_return['progress']=25
     json_return['message']='Is a valid domain and user'
 
     print(json.dumps(json_return))
+
+    time.sleep(1)
 
     try:
         user_pwd=pwd.getpwnam(user+'_'+domain)        
@@ -57,6 +78,7 @@ def remove_user():
             json_return['message']='Error: cannot delete the user'
 
             print(json.dumps(json_return))
+            unlock_file('virtual_domains')
             exit(1)
         else:
             
@@ -81,6 +103,9 @@ def remove_user():
                     json_return['message']='Deleted user from mailboxes'
 
                     print(json.dumps(json_return))
+                    
+                    time.sleep(1)
+                    
                 else:
                     json_return['error']=1
                     json_return['status']=1
@@ -88,7 +113,7 @@ def remove_user():
                     json_return['message']='Error: cannot update mailboxes'
 
                     print(json.dumps(json_return))
-
+                    unlock_file('virtual_domains')
                     sys.exit(1)
                 
 
@@ -100,7 +125,7 @@ def remove_user():
                 json_return['message']='Error: cannot refresh the domain mapper'
 
                 print(json.dumps(json_return))
-
+                unlock_file('virtual_domains')
                 exit(1)
 
             json_return['progress']=100
@@ -108,6 +133,8 @@ def remove_user():
             json_return['message']='Mailbox deleted successfully'
 
             print(json.dumps(json_return))
+            unlock_file('virtual_domains')
+            exit(0)
 
 
     except KeyError:
@@ -117,10 +144,10 @@ def remove_user():
         json_return['message']='Error: user no exists'
 
         print(json.dumps(json_return))
-
+        unlock_file('virtual_domains')
         sys.exit(1)
 
-
+    
 if __name__=='__main__':
     remove_user()
 

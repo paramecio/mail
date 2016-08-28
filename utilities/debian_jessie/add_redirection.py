@@ -1,5 +1,6 @@
 #!/usr/bin/python3 -u
 
+import time
 import os
 import re
 import argparse
@@ -8,6 +9,22 @@ import pwd
 import sys
 import socket
 from subprocess import call, DEVNULL
+
+def lock_file(file_lock):
+    with open('/tmp/lock_'+file_lock, 'w') as f:
+        f.write('lock')
+    return True
+        
+def unlock_file(file_lock):
+    os.remove('/tmp/lock_'+file_lock)
+    
+def check_lock(file_lock):
+    while os.path.isfile('/tmp/lock_'+file_lock)==True:
+        time.sleep(1)
+    
+    lock_file(file_lock)
+    
+    return True
 
 def add_redirection():
 
@@ -20,6 +37,8 @@ def add_redirection():
     args=parser.parse_args()
 
     json_return={'error':0, 'status': 0, 'progress': 0, 'no_progress':0, 'message': ''}
+
+    check_lock('virtual_domains')
 
     try:
 
@@ -42,6 +61,8 @@ def add_redirection():
                 
                 print(json.dumps(json_return))
                 
+                unlock_file('virtual_domains')
+                
                 exit(1)
                 
             
@@ -54,6 +75,8 @@ def add_redirection():
             
             print(json.dumps(json_return))
 
+            unlock_file('virtual_domains')
+
             exit(1) 
     
     except:
@@ -63,6 +86,8 @@ def add_redirection():
         json_return['message']='Error: domain or user is not valid'
         
         print(json.dumps(json_return))
+        
+        unlock_file('virtual_domains')
 
         exit(1) 
         
@@ -82,6 +107,8 @@ def add_redirection():
         json_return['message']='Error: domain or user is not valid'
         
         print(json.dumps(json_return))
+        
+        unlock_file('virtual_domains')
 
         exit(1)
 
@@ -89,6 +116,7 @@ def add_redirection():
     json_return['message']='Is a valid mailbox and redirection'
 
     print(json.dumps(json_return))
+    time.sleep(1)
     """
     try:
         
@@ -159,6 +187,7 @@ def add_redirection():
                 json_return['message']='Redirection added'
 
                 print(json.dumps(json_return))
+                time.sleep(1)
             else:
                 json_return['error']=1
                 json_return['status']=1
@@ -166,6 +195,8 @@ def add_redirection():
                 json_return['message']='Error: cannot add the new redirection to file'
 
                 print(json.dumps(json_return))
+
+                unlock_file('virtual_domains')
 
                 exit(1)          
                 
@@ -178,6 +209,8 @@ def add_redirection():
             json_return['message']='Error: cannot refresh the domain mapper'
 
             print(json.dumps(json_return))
+            
+            unlock_file('virtual_domains')
 
             exit(1)
         
@@ -193,8 +226,12 @@ def add_redirection():
         json_return['message']='Error: domain doesn\'t exists or same redirection exists'
 
         print(json.dumps(json_return))
+        
+        unlock_file('virtual_domains')
 
         exit(1)
+    
+    unlock_file('virtual_domains')
     
 if __name__=='__main__':
     add_redirection()

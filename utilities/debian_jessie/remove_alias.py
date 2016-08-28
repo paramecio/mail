@@ -1,5 +1,6 @@
 #!/usr/bin/python3 -u
 
+import time
 import os
 import re
 import argparse
@@ -7,6 +8,22 @@ import json
 import pwd
 import sys
 from subprocess import call, DEVNULL
+
+def lock_file(file_lock):
+    with open('/tmp/lock_'+file_lock, 'w') as f:
+        f.write('lock')
+    return True
+        
+def unlock_file(file_lock):
+    os.remove('/tmp/lock_'+file_lock)
+    
+def check_lock(file_lock):
+    while os.path.isfile('/tmp/lock_'+file_lock)==True:
+        time.sleep(1)
+    
+    lock_file(file_lock)
+    
+    return True
 
 def remove_alias():
 
@@ -17,6 +34,8 @@ def remove_alias():
     args=parser.parse_args()
 
     json_return={'error':0, 'status': 0, 'progress': 0, 'no_progress':0, 'message': ''}
+
+    check_lock('virtual_domains')
 
     user, domain=args.alias.split("@")
 
@@ -33,6 +52,8 @@ def remove_alias():
         json_return['message']='Error: domain or user is not valid'
         
         print(json.dumps(json_return))
+        
+        unlock_file('virtual_domains')
 
         exit(1)
     
@@ -42,7 +63,7 @@ def remove_alias():
     json_return['message']='Is a valid domain and user'
 
     print(json.dumps(json_return))
-
+    time.sleep(1)
 
     try:
         user_pwd=pwd.getpwnam(user+'_'+domain)        
@@ -53,6 +74,7 @@ def remove_alias():
         json_return['message']='Error: exists an user with it mail address'
 
         print(json.dumps(json_return))
+        unlock_file('virtual_domains')
         exit(1)
 
     except KeyError:
@@ -76,6 +98,7 @@ def remove_alias():
                 json_return['message']='Deleted alias from mailboxes'
 
                 print(json.dumps(json_return))
+                time.sleep(1)
             else:
                 json_return['error']=1
                 json_return['status']=1
@@ -83,7 +106,7 @@ def remove_alias():
                 json_return['message']='Error: cannot update mailboxes'
 
                 print(json.dumps(json_return))
-
+                unlock_file('virtual_domains')
                 sys.exit(1)
                 
 
@@ -95,7 +118,7 @@ def remove_alias():
                 json_return['message']='Error: cannot refresh the domain mapper'
 
                 print(json.dumps(json_return))
-
+                unlock_file('virtual_domains')
                 exit(1)
 
             json_return['progress']=100
@@ -104,6 +127,7 @@ def remove_alias():
 
             print(json.dumps(json_return))
                
+    unlock_file('virtual_domains')
     
 if __name__=='__main__':
     remove_alias()

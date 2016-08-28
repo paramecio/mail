@@ -1,5 +1,6 @@
 #!/usr/bin/python3 -u
 
+import time
 import os
 import re
 import argparse
@@ -7,6 +8,22 @@ import json
 import pwd
 import sys
 from subprocess import call, DEVNULL
+
+def lock_file(file_lock):
+    with open('/tmp/lock_'+file_lock, 'w') as f:
+        f.write('lock')
+    return True
+        
+def unlock_file(file_lock):
+    os.remove('/tmp/lock_'+file_lock)
+    
+def check_lock(file_lock):
+    while os.path.isfile('/tmp/lock_'+file_lock)==True:
+        time.sleep(1)
+    
+    lock_file(file_lock)
+    
+    return True
 
 def add_alias():
 
@@ -19,6 +36,13 @@ def add_alias():
     args=parser.parse_args()
 
     json_return={'error':0, 'status': 0, 'progress': 0, 'no_progress':0, 'message': ''}
+
+    json_return['progress']=5
+    json_return['message']='Waiting unlock...'
+
+    print(json.dumps(json_return))
+    
+    check_lock('virtual_domains')
 
     try:
 
@@ -33,6 +57,8 @@ def add_alias():
         json_return['message']='Error: domain or user is not valid'
         
         print(json.dumps(json_return))
+
+        unlock_file('virtual_domains')
 
         exit(1) 
         
@@ -53,12 +79,16 @@ def add_alias():
         
         print(json.dumps(json_return))
 
+        unlock_file('virtual_domains')
+
         exit(1)
 
     json_return['progress']=25
     json_return['message']='Is a valid domain and user'
 
     print(json.dumps(json_return))
+    
+    time.sleep(1)
     
     try:
         
@@ -71,6 +101,8 @@ def add_alias():
         json_return['message']='Error: user no exists'
 
         print(json.dumps(json_return))
+
+        unlock_file('virtual_domains')
 
         sys.exit(1)
     
@@ -95,6 +127,8 @@ def add_alias():
 
                 print(json.dumps(json_return))
 
+                unlock_file('virtual_domains')
+
                 sys.exit(1)
     
     #Add alias
@@ -105,6 +139,9 @@ def add_alias():
             json_return['message']='Alias added'
 
             print(json.dumps(json_return))
+            
+            time.sleep(1)
+            
         else:
             json_return['error']=1
             json_return['status']=1
@@ -112,6 +149,8 @@ def add_alias():
             json_return['message']='Error: cannot add the new mailbox to file'
 
             print(json.dumps(json_return))
+            
+            unlock_file('virtual_domains')
 
             exit(1)          
             
@@ -124,14 +163,19 @@ def add_alias():
         json_return['message']='Error: cannot refresh the domain mapper'
 
         print(json.dumps(json_return))
+        
+        unlock_file('virtual_domains')
 
         exit(1)
     
     json_return['progress']=100
     json_return['status']=1
     json_return['message']='Alias added sucessfully'
-
     print(json.dumps(json_return))
+    
+    unlock_file('virtual_domains')
+    
+    exit(0)
     
 if __name__=='__main__':
     add_alias()
