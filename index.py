@@ -301,14 +301,107 @@ def form_delete_domain(connection, t, s, **args):
     else:
         return "Error: cannot delete the domain"
 
+@route('/'+pastafari_folder+'/mail/change_quota/<domain_id:int>')
+@route('/'+pastafari_folder+'/mail/change_quota/<domain_id:int>/<change:int>')
+def change_quota(domain_id, change=0):
+    
+    args={'domain_id': domain_id, 'change': change}
+    
+    if change==0:
+    
+        return base_admin(form_change_quota_domain, env, 'Mail servers - Change domain quota', **args)
+    else:
+        
+        conn=WebModel.connection()
+        
+        server=Server(conn)
+    
+        domains=DomainMail(conn)
+        
+        task=Task(conn)
+        logtask=LogTask(conn)
+        
+        domains.set_conditions('where id=%s', [args['domain_id']])
+        
+        arr_domain=domains.select_a_row(args['domain_id'], ['id', 'domain', 'ip', 'quota', 'group'])
+        
+        getpostfiles=GetPostFiles()
+        
+        getpostfiles.obtain_get()
+        
+        getpostfiles.get['quota']=getpostfiles.get.get('quota', '0')
+        
+        server.set_conditions('where ip=%s', [arr_domain['ip']])
+        
+        arr_server=server.select_a_row_where(['id', 'hostname', 'os_codename'])
+        
+        try:
+            
+            quota=int(getpostfiles.get['quota'])
+        
+        except:
+            
+            quota=arr_domain['quota']
+            
+        commands_to_execute=[]
+                                
+        commands_to_execute.append(['modules/mail/utilities/'+arr_server['os_codename']+'/change_quota.py', '--group '+arr_domain['group']+' --quota '+str(quota), ''])
+        
+        url=make_url('pastafari/mail/domains/'+str(arr_server['id']))
+        
+        task.create_forms()
+        logtask.create_forms()
+        
+        if task.insert({'name_task': 'add_domain','description_task': I18n.lang('mail', 'change_quota', 'Changing quota of domain '+arr_domain['domain']), 'url_return': url, 'files':  [], 'commands_to_execute': commands_to_execute, 'delete_files': [], 'delete_directories': [], 'server': arr_domain['ip'], 'post_func': 'modules.mail.libraries.change_quota_tasks', 'extra_data': {'domain_id': domain_id, 'quota': quota} }):
+            
+            task_id=task.insert_id()
+                                            
+            #try:
+            
+            r=requests.get(server_task+str(task_id))
+            
+            arr_data=r.json()
+            
+            arr_data['task_id']=task_id
+            
+            if not logtask.insert(arr_data):
+                
+                return "Error:Wrong format of json data..."
+            else:
+                
+                redirect(make_url(pastafari_folder+'/showprogress/'+str(task_id)+'/'+arr_domain['ip']))
+        else:
+            
+            return "Cannot insert the task"
+            
+        
 
+def form_change_quota_domain(connection, t, s, **args):
+    
+    if args['change']==0:
+        
+        conn=WebModel.connection()
+        
+        server=Server(conn)
+    
+        domains=DomainMail(conn)
+        
+        domains.set_conditions('where id=%s', [args['domain_id']])
+        
+        arr_domain=domains.select_a_row(args['domain_id'], ['id', 'domain', 'ip', 'quota'])
+    
+        return t.load_template('mail/change_quota.phtml', quota=arr_domain['quota'], domain_id=arr_domain['id'], domain=arr_domain['domain'])
+    
+        #'<form method="get" action="'+make_url(pastafari_folder+'/mail/delete_domain/'+str(args['domain_id'])+'/1')+'"><p><input type="submit" value="Delete domain?"/></p></form>'
+    else:
+        return "Error: cannot change the quota the domain"
 
 def mail_options(url, id, arr_row):
     
     arr_options=[]
     
     arr_options.append('<a href="">Mailboxes</a>')
-    arr_options.append('<a href="">Change quota</a>')
+    arr_options.append('<a href="'+make_url(pastafari_folder+'/mail/change_quota/'+str(id))+'">Change quota</a>')
     arr_options.append('<a href="'+make_url(pastafari_folder+'/mail/delete_domain/'+str(id))+'">Delete</a>')
     
     return arr_options
