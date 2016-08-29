@@ -95,7 +95,9 @@ def admin_domains(connection, t, s, **args):
     
     domain_list=SimpleList(domains, '', t)
     
-    domain_list.fields_showed=['domain', 'server']
+    domain_list.fields_showed=['domain']
+    
+    domain_list.arr_extra_options=[mail_options]
 
     return t.load_template('mail/domains.phtml', hostname=arr_server['hostname'], domains=domain_list.show(), server_id=arr_server['id'])
 
@@ -229,66 +231,84 @@ def add_domain_db(server_id):
     
     pass
 
-    """
-    data_server.set_order(['free'], [1])
+@route('/'+pastafari_folder+'/mail/delete_domain/<domain_id:int>')
+@route('/'+pastafari_folder+'/mail/delete_domain/<domain_id:int>/<delete:int>')
+def delete_domain(domain_id, delete=0):
     
-    arr_disk=disk_server.select_to_array()
+    args={'domain_id': domain_id, 'delete': delete}
     
-    arr_servers=OrderedDict()
+    if delete==0:
     
-    for disk in arr_disk:
+        return base_admin(form_delete_domain, env, 'Mail servers - Delete domain', **args)
+    else:
         
-        if disk['server_id'] in arr_servers:
+        conn=WebModel.connection()
+        
+        server=Server(conn)
+    
+        domains=DomainMail(conn)
+        
+        task=Task(conn)
+        logtask=LogTask(conn)
+        
+        domains.set_conditions('where id=%s', [domain_id])
+        
+        arr_domain=domains.select_a_row(domain_id, ['domain', 'ip'])
+        
+        server.set_conditions('where ip=%s', [arr_domain['ip']])
+        
+        arr_server=server.select_a_row_where(['id', 'hostname', 'os_codename'])
+        
+        commands_to_execute=[]
+                                
+        commands_to_execute.append(['modules/mail/utilities/'+arr_server['os_codename']+'/remove_domain.py', '--domain '+arr_domain['domain'], ''])
+        
+        url=make_url('pastafari/mail/domains/'+str(arr_server['id']))
+        
+        task.create_forms()
+        logtask.create_forms()
+        
+        if task.insert({'name_task': 'add_domain','description_task': I18n.lang('mail', 'delete_domain', 'Deleting domain '+arr_domain['domain']+' to the server...'), 'url_return': url, 'files':  [], 'commands_to_execute': commands_to_execute, 'delete_files': [], 'delete_directories': [], 'server': arr_domain['ip'], 'post_func': 'modules.mail.libraries.func_tasks', 'extra_data': {'domain_id': domain_id} }):
             
-            arr_servers[disk['server_id']].append(disk)
-        
+            task_id=task.insert_id()
+                                            
+            #try:
+            
+            r=requests.get(server_task+str(task_id))
+            
+            arr_data=r.json()
+            
+            arr_data['task_id']=task_id
+            
+            if not logtask.insert(arr_data):
+                
+                return "Error:Wrong format of json data..."
+            else:
+                
+                redirect(make_url(pastafari_folder+'/showprogress/'+str(task_id)+'/'+arr_domain['ip']))
         else:
-            arr_servers[disk['server_id']]=[disk]
-    
-    return t.load_template('mail/admin.phtml', servers=arr_servers)
-    """
-    
-    """
-    #server.fields['server_date'].label='Status'
-    
-    server.set_conditions('where ip IN (select ip from servergrouptask where name_task="standalone_postfix")', [])
-    
-    groups_list=SimpleList(disks_server, '', t)
-    
-    groups_list.raw_query=False
-    
-    #groups_list.fields_showed=['hostname', 'ip', 'actual_idle', 'date']
-    
-    groups_list.yes_search=False
-    
-    return t.load_template('mail/admin.phtml', groups_list=groups_list.show())
-    """
-"""
-@route('/'+pastafari_folder+'/mail/addgroup')
-def viewform():
-    
-    return base_admin(admin_form_groups, env, 'Add new mail server')
-    
-def admin_form_groups(connection, t, s):
-    
-    return group_form(t, connection)
-
-def group_form(t, connection, yes_error=False, pass_values=False, **args):
-    
-    arr_form=OrderedDict()
+            
+            return "Cannot insert the task"
         
-    arr_form['group_id']=coreforms. SelectModelForm('group_id', '', ServerGroup(connection), 'name', 'id')
+        return ""
     
-    arr_form['group_id'].required=True
+
+def form_delete_domain(connection, t, s, **args):
     
-    arr_form['group_id'].label='Choose server group. If the group was added, simply add the new servers in the group.'
-
-    forms=show_form(args, arr_form, t, yes_error, pass_values)
-
-    return t.load_template('mail/addform.phtml', forms=forms)
-
-@post('/'+pastafari_folder+'/mail/addservers')
-def addservers():
-    return ""
+    if args['delete']==0:
     
-"""
+        return '<form method="get" action="'+make_url(pastafari_folder+'/mail/delete_domain/'+str(args['domain_id'])+'/1')+'"><p><input type="submit" value="Delete domain?"/></p></form>'
+    else:
+        return "Error: cannot delete the domain"
+
+
+
+def mail_options(url, id, arr_row):
+    
+    arr_options=[]
+    
+    arr_options.append('<a href="">Mailboxes</a>')
+    arr_options.append('<a href="">Change quota</a>')
+    arr_options.append('<a href="'+make_url(pastafari_folder+'/mail/delete_domain/'+str(id))+'">Delete</a>')
+    
+    return arr_options
