@@ -61,7 +61,17 @@ def admin_mailboxes(connection, t, s, **args):
     
     mailbox_list.raw_query=False
     
-    mailbox_list.yes_search=False
+    mailbox_list.search_fields=['mailbox']
     
     return t.load_template('mail/mailboxes.phtml', select_form=select_form_group.form(), mailbox_list=mailbox_list, domain_id=args['domain_id'])
+
+@route('/'+pastafari_folder+'/mail/mailboxes/add/<domain_id:int>')
+@route('/'+pastafari_folder+'/mail/mailboxes/add/<domain_id:int>/add:int>')
+def add_mailbox(domain_id, add=0):
+    
+    args={'domain_id': domain_id}
+    
+    return ""
+    
+    #return base_admin(admin_mailboxes, env, 'Mailboxes', **args)
 
