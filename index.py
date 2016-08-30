@@ -400,7 +400,7 @@ def mail_options(url, id, arr_row):
     
     arr_options=[]
     
-    arr_options.append('<a href="">Mailboxes</a>')
+    arr_options.append('<a href="'+make_url('pastafari/mail/mailboxes/'+str(id))+'">Mailboxes</a>')
     arr_options.append('<a href="'+make_url(pastafari_folder+'/mail/change_quota/'+str(id))+'">Change quota</a>')
     arr_options.append('<a href="'+make_url(pastafari_folder+'/mail/delete_domain/'+str(id))+'">Delete</a>')
     

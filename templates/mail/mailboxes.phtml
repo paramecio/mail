@@ -1,0 +1,20 @@
+<p>
+<form method="get" action="" id="change_group">
+<p>Select domain: ${select_form|n}</p>
+</form>
+</p>
+<p>
+    % if domain_id>0:
+    <a href="${make_url('pastafari/mail/mailboxes/add/'+str(domain_id))}">Add new mailbox</a>
+    % endif
+</p>
+${mailbox_list.show()|n}
+
+<script>
+$('#change_domain_id_form').change( function () {
+       
+       //$('#change_group').submit();
+       location.href='${make_url('pastafari/mail/mailboxes')}/'+$('#change_domain_id_form').val();
+        
+    });
+</script>
