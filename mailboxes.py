@@ -66,12 +66,132 @@ def admin_mailboxes(connection, t, s, **args):
     return t.load_template('mail/mailboxes.phtml', select_form=select_form_group.form(), mailbox_list=mailbox_list, domain_id=args['domain_id'])
 
 @route('/'+pastafari_folder+'/mail/mailboxes/add/<domain_id:int>')
-@route('/'+pastafari_folder+'/mail/mailboxes/add/<domain_id:int>/add:int>')
-def add_mailbox(domain_id, add=0):
+@get('/'+pastafari_folder+'/mail/mailboxes/add/<domain_id:int>/add:int>')
+def add_form_mailbox(domain_id, add=0):
     
     args={'domain_id': domain_id}
     
-    return ""
+    conn=WebModel.connection()
     
-    #return base_admin(admin_mailboxes, env, 'Mailboxes', **args)
+    domain=DomainMail(conn)
+    
+    arr_domain=domain.select_a_row(domain_id, ['domain'])
+    
+    if arr_domain:
+    
+        mailbox=MailBox(conn)
+        
+        args['domain_id']=domain_id
+        
+        args['mailbox']=mailbox
+        
+        args['domain']=arr_domain['domain']
+        
+        args['post']={}
+        
+        args['yes_error']=False
+        
+        args['pass_values']=False
+        
+        return base_admin(form_admin_mailbox, env, 'Add Mailbox - '+arr_domain['domain'], **args)
+        
+    else:
+        
+        return ""
+
+def form_admin_mailbox(connection, t, s, **args):
+    
+    args['mailbox'].fields['mailbox'].name_form=coreforms.SimpleTextForm
+    
+    args['mailbox'].create_forms(['mailbox'])
+    
+    args['mailbox'].forms['mailbox'].after_text='@'+args['domain']
+    
+    form=show_form(args['post'], args['mailbox'].forms, t, args['yes_error'], args['pass_values'])
+    
+    return t.load_template('mail/add_mailbox.phtml', forms=form, url_post=make_url(pastafari_folder+'/mail/mailboxes/addmailbox/'+str(args['domain_id'])))
+    
+
+@post('/'+pastafari_folder+'/mail/mailboxes/addmailbox/<domain_id:int>')
+def add_mailbox(domain_id):
+    
+    args={'domain_id': domain_id}
+    
+    conn=WebModel.connection()
+    
+    domain=DomainMail(conn)
+    
+    arr_domain=domain.select_a_row(domain_id, ['domain'])
+    
+    if arr_domain:
+        
+        args['arr_domain']=arr_domain
+        
+        args['domain']=domain
+        
+        return base_admin(save_admin_mailbox, env, 'Save Mailbox - '+arr_domain['domain'], **args)
+        
+    else:
+        
+        return ""
+
+
+def save_admin_mailbox(connection, t, s, **args):
+    
+    getpost=GetPostFiles()
+    
+    getpost.obtain_post()
+    
+    mboxmodel=MailBox(connection)
+        
+    args['mailbox']=mboxmodel
+    
+    args['domain']=args['arr_domain']['domain']
+    
+    args['post']=getpost.post
+    
+    args['yes_error']=True
+    
+    args['pass_values']=True
+    
+    if 'mailbox' in getpost.post:
+        
+        mailbox=getpost.post['mailbox']+'@'+args['arr_domain']['domain']
+        
+        mailbox=mboxmodel.fields['mailbox'].check(mailbox)
+        
+        if mboxmodel.fields['mailbox'].error==False:
+            
+            # Check if in database
+            
+            c=mboxmodel.set_conditions('WHERE mailbox=%s', [mailbox]).select_count()
+            
+            if c>0:
+                
+                mboxmodel.fields['mailbox'].error=True
+                mboxmodel.fields['mailbox'].txt_error=I18n.lang('mail', 'mailbox_exists', 'Mailbox exists in the server')
+
+                return form_admin_mailbox(connection, t, s, **args)
+            else:
+                
+                # insert mailbox
+                
+                mboxmodel.create_forms()
+                
+                if mboxmodel.insert({'mailbox': mailbox, 'domain_id': args['domain_id']}):
+                
+                    #Insert task with extra_data with mailbox created
+                    
+                    pass
+                else:
+                    
+                    return 'Cannot insert the mailbox: '+mboxmodel.show_errors()
+                    
+        else:
+            
+            return mboxmodel.fields['mailbox'].txt_error
+            
+    
+    return ""
+
 
